@@ -80,6 +80,22 @@ const supabaseUrl = isSupabaseConfigured ? rawSupabaseUrl : "https://placeholder
 const supabaseAnonKey = isSupabaseConfigured ? rawSupabaseAnonKey : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy.key";
 const supabaseServiceKey = isSupabaseConfigured ? (rawSupabaseServiceKey || rawSupabaseAnonKey) : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy.key";
 
+// Verbose database startup telemetry/diagnostics for Vercel Serverless environment tracing
+console.log("=========================================");
+console.log("[CARD MRI SECURE BOOT ENGINE DIAGNOSTICS]");
+console.log("- VERCEL environment variable:", process.env.VERCEL);
+console.log("- NODE_ENV variable:", process.env.NODE_ENV);
+console.log("- Raw SUPABASE_URL configured:", !!process.env.SUPABASE_URL, `(len: ${process.env.SUPABASE_URL?.trim().length || 0})`);
+console.log("- Raw VITE_SUPABASE_URL configured:", !!process.env.VITE_SUPABASE_URL, `(len: ${process.env.VITE_SUPABASE_URL?.trim().length || 0})`);
+console.log("- Raw SUPABASE_ANON_KEY configured:", !!process.env.SUPABASE_ANON_KEY, `(len: ${process.env.SUPABASE_ANON_KEY?.trim().length || 0})`);
+console.log("- Raw VITE_SUPABASE_ANON_KEY configured:", !!process.env.VITE_SUPABASE_ANON_KEY, `(len: ${process.env.VITE_SUPABASE_ANON_KEY?.trim().length || 0})`);
+console.log("- Raw SUPABASE_SERVICE_KEY configured:", !!process.env.SUPABASE_SERVICE_KEY, `(len: ${process.env.SUPABASE_SERVICE_KEY?.trim().length || 0})`);
+console.log("- Verified config status (isSupabaseConfigured):", isSupabaseConfigured);
+console.log("- Target URL used:", supabaseUrl);
+console.log("- Target Anon Key (masked):", supabaseAnonKey.substring(0, 15) + "..." + (supabaseAnonKey.length > 15 ? supabaseAnonKey.substring(supabaseAnonKey.length - 10) : ""));
+console.log("- Target Service Key (masked):", supabaseServiceKey.substring(0, 15) + "..." + (supabaseServiceKey.length > 15 ? supabaseServiceKey.substring(supabaseServiceKey.length - 10) : ""));
+console.log("=========================================");
+
 // Regular client for normal operations
 const sbClient = createClient(supabaseUrl, supabaseAnonKey);
 const supabase = sbClient;
