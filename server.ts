@@ -118,8 +118,10 @@ async function initializeDatabase() {
   dbSetupCompleted = true;
 }
 
-// Call initializeDatabase() immediately after the sbClient is created, before any route definitions
-initializeDatabase().catch(console.warn);
+// Call initializeDatabase() immediately after the sbClient is created, except on Vercel serverless to prevent startup timeouts
+if (process.env.VERCEL !== "1") {
+  initializeDatabase().catch(console.warn);
+}
 
 // In-memory array fallbacks for decoupled/non-Supabase tables (Applications and Support tickets)
 const initialApplications = [
@@ -2162,9 +2164,11 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[CARD MRI SECURE INGRESS ENGINE] Server running on http://localhost:${PORT}`);
-  });
+  if (process.env.VERCEL !== "1") {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`[CARD MRI SECURE INGRESS ENGINE] Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
 startServer();
