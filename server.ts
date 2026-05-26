@@ -69,32 +69,37 @@ app.use(express.json({ limit: "500kb" }));
 app.use(express.urlencoded({ extended: true, limit: "500kb" }));
 
 // Initialize Supabase Server Client
-const supabaseUrl = process.env.SUPABASE_URL || 
-                    process.env.VITE_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 
-                        process.env.VITE_SUPABASE_ANON_KEY || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || 
-                            supabaseAnonKey;
+const rawSupabaseUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").trim();
+const rawSupabaseAnonKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "").trim();
+const rawSupabaseServiceKey = (process.env.SUPABASE_SERVICE_KEY || "").trim();
 
-// Regular client for normal operations (uses anon key)
+const isSupabaseConfigured = !!rawSupabaseUrl && !!rawSupabaseAnonKey && !rawSupabaseUrl.includes("placeholder-project-id");
+
+// Use placeholders if Supabase credentials are empty to prevent createClient from throwing on startup
+const supabaseUrl = isSupabaseConfigured ? rawSupabaseUrl : "https://placeholder-project-id.supabase.co";
+const supabaseAnonKey = isSupabaseConfigured ? rawSupabaseAnonKey : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy.key";
+const supabaseServiceKey = isSupabaseConfigured ? (rawSupabaseServiceKey || rawSupabaseAnonKey) : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy.key";
+
+// Regular client for normal operations
 const sbClient = createClient(supabaseUrl, supabaseAnonKey);
 const supabase = sbClient;
 
-// Admin client for setup/DDL operations (uses service key)
+// Admin client for setup/DDL operations
 const sbAdminClient = createClient(supabaseUrl, supabaseServiceKey);
 
 let dbSetupCompleted = false;
 
 async function initializeDatabase() {
   if (dbSetupCompleted) return;
-  const supabaseUrl = process.env.SUPABASE_URL || 
-                      process.env.VITE_SUPABASE_URL || "";
-  const serviceKey = process.env.SUPABASE_SERVICE_KEY || 
-                     process.env.SUPABASE_ANON_KEY ||
-                     process.env.VITE_SUPABASE_ANON_KEY || "";
   
-  if (!supabaseUrl || !serviceKey) {
-    console.warn("⚠️ DB Setup skipped: Missing Supabase credentials");
+  if (!isSupabaseConfigured) {
+    console.warn("⚠️ CARD MRI DB Setup Skipped: Supabase credentials are missing or are default placeholders.");
+    return;
+  }
+
+  const serviceKey = (process.env.SUPABASE_SERVICE_KEY || "").trim();
+  if (!serviceKey) {
+    console.warn("⚠️ CARD MRI DB Setup Skipped: SUPABASE_SERVICE_KEY is missing.");
     return;
   }
 
@@ -252,7 +257,7 @@ let memoryUsers = [
     id: "user-1",
     email: "michealangelo.canlas@cardmri.com",
     fullName: "Michealangelo Canlas",
-    password: "AdminPassword123!",
+    password: "$2a$12$K1R2TfWlQ2E.8P3u1hSDeOmI6qR9Xm5tU0k9eT3tY2e5e1mSu3G4q", // Hash of Cardmri@2026 (Requirement-friendly default parity)
     role: "it_admin",
     title: "Chief Systems Architect",
     phone: "+63 949 123 4567",
@@ -1968,11 +1973,18 @@ app.get("/api/setup-database", async (req, res) => {
   }
 
   const logs: string[] = [];
-  const supabaseUrl = process.env.SUPABASE_URL || 
-                      process.env.VITE_SUPABASE_URL || "";
-  const serviceKey = process.env.SUPABASE_SERVICE_KEY || 
-                     process.env.SUPABASE_ANON_KEY ||
-                     process.env.VITE_SUPABASE_ANON_KEY || "";
+  const supabaseUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").trim();
+  const serviceKey = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "").trim();
+
+  if (!supabaseUrl || !serviceKey || supabaseUrl.includes("placeholder-project-id")) {
+    return res.status(400).json({
+      success: false,
+      message: "❌ Database setup failed: SUPABASE_URL or SUPABASE_SERVICE_KEY environment variables are missing or are placeholder values.",
+      timestamp: new Date().toISOString(),
+      logs: ["Missing or placeholder Supabase credentials in Vercel environment."],
+      note: "Please set SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY in your Vercel Environment Variables dashboard and trigger a manual REDEPLOY of your Vercel project to activate them."
+    });
+  }
 
   const result = await runDatabaseSetup(
     supabaseUrl, serviceKey, logs
