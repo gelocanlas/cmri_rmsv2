@@ -1,5 +1,3 @@
-import fetch from "node-fetch";
-
 export async function runDatabaseSetup(
   supabaseUrl: string,
   serviceKey: string,
